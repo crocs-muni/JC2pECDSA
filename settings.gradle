@@ -1,0 +1,3 @@
+rootProject.name = 'jc2pecdsa'
+include 'applet'
+
