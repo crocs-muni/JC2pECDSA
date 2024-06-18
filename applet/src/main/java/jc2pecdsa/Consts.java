@@ -3,8 +3,10 @@ package jc2pecdsa;
 public class Consts {
     public static final byte CLA_JC2PECDSA = (byte) 0x00;
 
-    public static final byte INS_RESET = (byte) 0x00;
-    public static final byte INS_SIGN = (byte) 0x01;
+    public static final byte INS_SETUP = (byte) 0x00;
+    public static final byte INS_SIGN1 = (byte) 0x01;
+    public static final byte INS_SIGN2 = (byte) 0x02;
+    public static final byte INS_SIGN3 = (byte) 0x03;
 
     public final static short E_ALREADY_INITIALIZED = (short) 0xee00;
 

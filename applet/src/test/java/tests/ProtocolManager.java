@@ -2,11 +2,16 @@ package tests;
 
 import cz.muni.fi.crocs.rcard.client.CardManager;
 import cz.muni.fi.crocs.rcard.client.Util;
+import javacard.framework.ISO7816;
+import jc2pecdsa.Consts;
 import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.spec.ECParameterSpec;
 import org.bouncycastle.jce.spec.ECPublicKeySpec;
 import org.bouncycastle.math.ec.ECPoint;
+import org.junit.jupiter.api.Assertions;
 
+import javax.smartcardio.CommandAPDU;
+import javax.smartcardio.ResponseAPDU;
 import java.math.BigInteger;
 import java.security.*;
 import java.util.Random;
@@ -20,6 +25,57 @@ public class ProtocolManager {
 
     public ProtocolManager(CardManager cm) {
         this.cm = cm;
+    }
+
+    public void setup() throws Exception {
+        CommandAPDU cmd = new CommandAPDU(
+                Consts.CLA_JC2PECDSA,
+                Consts.INS_SETUP,
+                0,
+                0
+        );
+        ResponseAPDU responseAPDU = cm.transmit(cmd);
+        Assertions.assertNotNull(responseAPDU);
+        Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, responseAPDU.getSW());
+    }
+
+    public void sign1(byte[] message) throws Exception {
+        CommandAPDU cmd = new CommandAPDU(
+                Consts.CLA_JC2PECDSA,
+                Consts.INS_SIGN1,
+                0,
+                0,
+                message
+        );
+        ResponseAPDU responseAPDU = cm.transmit(cmd);
+        Assertions.assertNotNull(responseAPDU);
+        Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, responseAPDU.getSW());
+    }
+
+    public void sign2(byte[] pi1, ECPoint R1) throws Exception {
+        CommandAPDU cmd = new CommandAPDU(
+                Consts.CLA_JC2PECDSA,
+                Consts.INS_SIGN2,
+                0,
+                0,
+                Util.concat(pi1, R1.getEncoded(false))
+        );
+        ResponseAPDU responseAPDU = cm.transmit(cmd);
+        Assertions.assertNotNull(responseAPDU);
+        Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, responseAPDU.getSW());
+    }
+
+    public void sign3(BigInteger cs1) throws Exception {
+        CommandAPDU cmd = new CommandAPDU(
+                Consts.CLA_JC2PECDSA,
+                Consts.INS_SIGN3,
+                0,
+                0,
+                ProtocolManager.encodeBigInteger(cs1)
+        );
+        ResponseAPDU responseAPDU = cm.transmit(cmd);
+        Assertions.assertNotNull(responseAPDU);
+        Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, responseAPDU.getSW());
     }
 
     public static BigInteger hash(byte[] message) throws NoSuchAlgorithmException {

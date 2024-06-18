@@ -36,8 +36,17 @@ public class JC2pECDSA extends Applet {
 
         try {
             switch (apdu.getBuffer()[ISO7816.OFFSET_INS]) {
-                case Consts.INS_RESET:
-                    reset(apdu);
+                case Consts.INS_SETUP:
+                    setup(apdu);
+                    break;
+                case Consts.INS_SIGN1:
+                    sign1(apdu);
+                    break;
+                case Consts.INS_SIGN2:
+                    sign2(apdu);
+                    break;
+                case Consts.INS_SIGN3:
+                    sign3(apdu);
                     break;
                 default:
                     ISOException.throwIt(ISO7816.SW_INS_NOT_SUPPORTED);
@@ -90,7 +99,18 @@ public class JC2pECDSA extends Applet {
         initialized = true;
     }
 
-    private void reset(APDU apdu) {
+    private void setup(APDU apdu) {
+        apdu.setOutgoing();
+    }
+
+    private void sign1(APDU apdu) {
+        apdu.setOutgoing();
+    }
+
+    private void sign2(APDU apdu) {
+        apdu.setOutgoing();
+    }
+    private void sign3(APDU apdu) {
         apdu.setOutgoing();
     }
 }

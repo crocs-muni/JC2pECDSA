@@ -38,7 +38,10 @@ public class AppletTest extends BaseTest {
         BigInteger pt = cx2.modPow(lambda, nsq).subtract(BigInteger.ONE).divide(n).multiply(mu).mod(n);
         assert pt.equals(x2);
 
+        pm.setup();
+
         // Host sends m to card
+        pm.sign1(new byte[32]);
 
         BigInteger k2 = ProtocolManager.randomBigInt(32);
         ECPoint R2 = ProtocolManager.G.multiply(k2);
@@ -50,6 +53,7 @@ public class AppletTest extends BaseTest {
         ECPoint R1 = ProtocolManager.G.multiply(k1);
 
         // Host sends pi1, R1 to card
+        pm.sign2(new byte[32], R1);
 
         // TODO verify pi1
 
@@ -65,10 +69,11 @@ public class AppletTest extends BaseTest {
         BigInteger c1 = g.modPow(c1_prime, nsq).multiply(ProtocolManager.randomBigInt(128).modPow(n, nsq)).mod(nsq);
         BigInteger v = k1.modInverse(order).multiply(Rx).multiply(x1).mod(order);
         BigInteger c2 = cx2.modPow(v, nsq);
-        BigInteger c3 = c1.multiply(c2).mod(nsq);
+        BigInteger cs1 = c1.multiply(c2).mod(nsq);
 
         // Host sends c3 to card
-        BigInteger s1 = c3.modPow(lambda, nsq).subtract(BigInteger.ONE).divide(n).multiply(mu).mod(n);
+        pm.sign3(cs1);
+        BigInteger s1 = cs1.modPow(lambda, nsq).subtract(BigInteger.ONE).divide(n).multiply(mu).mod(n);
         BigInteger s = k2.modInverse(order).multiply(s1).mod(order);
 
         byte[] signature = ProtocolManager.rawToDer(Rx, s);
