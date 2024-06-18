@@ -2,17 +2,18 @@ package jc2pecdsa;
 
 import javacard.framework.*;
 import javacard.security.*;
+import javacardx.apdu.ExtendedLength;
 import jc2pecdsa.jcmathlib.*;
 
 
-public class JC2pECDSA extends Applet {
+public class JC2pECDSA extends Applet implements ExtendedLength {
     public final static short CARD_TYPE = OperationSupport.SIMULATOR;
 
     private ResourceManager rm;
     private ECCurve curve;
 
-    private BigNat bn1, bn2;
-    private final byte[] ramArray = JCSystem.makeTransientByteArray((short) 32, JCSystem.CLEAR_ON_RESET);
+    private final byte[] largeBuffer = new byte[2048];
+    private BigNat n, nsq, lambda, mu;
 
     private boolean initialized = false;
     public static void install(byte[] bArray, short bOffset, byte bLength) {
@@ -93,13 +94,20 @@ public class JC2pECDSA extends Applet {
         rm = new ResourceManager((short) 256);
         curve = new ECCurve(SecP256k1.p, SecP256k1.a, SecP256k1.b, SecP256k1.G, SecP256k1.r, rm);
 
-        bn1 = new BigNat((short) 32, JCSystem.MEMORY_TYPE_TRANSIENT_RESET, rm);
-        bn2 = new BigNat((short) 32, JCSystem.MEMORY_TYPE_TRANSIENT_RESET, rm);
+        n = new BigNat((short) 128, JCSystem.MEMORY_TYPE_PERSISTENT, rm);
+        nsq = new BigNat((short) 256, JCSystem.MEMORY_TYPE_PERSISTENT, rm);
+        lambda = new BigNat((short) 128, JCSystem.MEMORY_TYPE_PERSISTENT, rm);
+        mu = new BigNat((short) 128, JCSystem.MEMORY_TYPE_PERSISTENT, rm);
 
         initialized = true;
     }
 
     private void setup(APDU apdu) {
+        byte[] apduBuffer = loadApdu(apdu);
+        n.fromByteArray(apduBuffer, apdu.getOffsetCdata(), (short) 128);
+        nsq.fromByteArray(apduBuffer, (short) (apdu.getOffsetCdata() + 128), (short) 256);
+        lambda.fromByteArray(apduBuffer, (short) (apdu.getOffsetCdata() + 128 + 256), (short) 128);
+        mu.fromByteArray(apduBuffer, (short) (apdu.getOffsetCdata() + 2 * 128 + 256), (short) 128);
         apdu.setOutgoing();
     }
 
@@ -112,5 +120,20 @@ public class JC2pECDSA extends Applet {
     }
     private void sign3(APDU apdu) {
         apdu.setOutgoing();
+    }
+
+    private byte[] loadApdu(APDU apdu) {
+        byte[] apduBuffer = apdu.getBuffer();
+        short recvLen = (short) (apdu.setIncomingAndReceive() + apdu.getOffsetCdata());
+        if (apdu.getOffsetCdata() == ISO7816.OFFSET_CDATA) {
+            return apduBuffer;
+        }
+        short written = 0;
+        while (recvLen > 0) {
+            Util.arrayCopyNonAtomic(apduBuffer, (short) 0, largeBuffer, written, recvLen);
+            written += recvLen;
+            recvLen = apdu.receiveBytes((short) 0);
+        }
+        return largeBuffer;
     }
 }

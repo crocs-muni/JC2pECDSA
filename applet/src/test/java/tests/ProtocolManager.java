@@ -27,12 +27,16 @@ public class ProtocolManager {
         this.cm = cm;
     }
 
-    public void setup() throws Exception {
+    public void setup(BigInteger n, BigInteger nsq, BigInteger lambda, BigInteger mu) throws Exception {
+        byte[] data = Util.concat(encodeBigInteger(n, 128), encodeBigInteger(nsq, 256));
+        data = Util.concat(data, encodeBigInteger(lambda, 128));
+        data = Util.concat(data, encodeBigInteger(mu, 128));
         CommandAPDU cmd = new CommandAPDU(
                 Consts.CLA_JC2PECDSA,
                 Consts.INS_SETUP,
                 0,
-                0
+                0,
+                data
         );
         ResponseAPDU responseAPDU = cm.transmit(cmd);
         Assertions.assertNotNull(responseAPDU);
@@ -71,7 +75,7 @@ public class ProtocolManager {
                 Consts.INS_SIGN3,
                 0,
                 0,
-                ProtocolManager.encodeBigInteger(cs1)
+                ProtocolManager.encodeBigInteger(cs1, 256)
         );
         ResponseAPDU responseAPDU = cm.transmit(cmd);
         Assertions.assertNotNull(responseAPDU);
@@ -89,9 +93,13 @@ public class ProtocolManager {
     }
 
     public static byte[] encodeBigInteger(BigInteger x) {
+        return encodeBigInteger(x, 32);
+    }
+
+    public static byte[] encodeBigInteger(BigInteger x, int bytes) {
         byte[] encoded = Util.trimLeadingZeroes(x.toByteArray());
-        assert encoded.length <= 32;
-        while (encoded.length != 32) {
+        assert encoded.length <= bytes;
+        while (encoded.length != bytes) {
             encoded = Util.concat(new byte[1], encoded);
         }
         return encoded;

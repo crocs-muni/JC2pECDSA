@@ -6,7 +6,6 @@ import org.junit.jupiter.api.*;
 
 import java.math.BigInteger;
 import java.security.Security;
-import java.util.Arrays;
 
 public class AppletTest extends BaseTest {
     public AppletTest() {
@@ -38,7 +37,7 @@ public class AppletTest extends BaseTest {
         BigInteger pt = cx2.modPow(lambda, nsq).subtract(BigInteger.ONE).divide(n).multiply(mu).mod(n);
         assert pt.equals(x2);
 
-        pm.setup();
+        pm.setup(n, nsq, lambda, mu);
 
         // Host sends m to card
         pm.sign1(new byte[32]);
