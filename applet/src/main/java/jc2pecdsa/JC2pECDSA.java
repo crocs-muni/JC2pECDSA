@@ -14,15 +14,19 @@ public class JC2pECDSA extends Applet implements ExtendedLength {
 
     private final byte[] largeBuffer = new byte[1024];
     private final RandomData randomData = RandomData.getInstance(RandomData.ALG_SECURE_RANDOM);
+    private final MessageDigest md = MessageDigest.getInstance(MessageDigest.ALG_SHA_256, false);
 
     private final Signature ecdsa = Signature.getInstance(Signature.ALG_ECDSA_SHA_256, false);
-    private final byte[] ramArray = JCSystem.makeTransientByteArray((short) 32, JCSystem.CLEAR_ON_RESET);
+    private final byte[] ramArray = JCSystem.makeTransientByteArray((short) 65, JCSystem.CLEAR_ON_RESET);
     private ECPoint publicKey;
     private BigNat n, nsq, lambda, mu;
     private BigNat k2;
     private BigNat bn;
+    private BigNat sbn;
     private ECPoint point1, point2;
     private final byte[] m = new byte[32];
+    private final byte[] Rx = new byte[32];
+    private final byte[] proof = new byte[64];
 
     private boolean initialized = false;
     public static void install(byte[] bArray, short bOffset, byte bLength) {
@@ -112,6 +116,7 @@ public class JC2pECDSA extends Applet implements ExtendedLength {
         mu = new BigNat((short) 128, JCSystem.MEMORY_TYPE_PERSISTENT, rm);
         k2 = new BigNat((short) 32, JCSystem.MEMORY_TYPE_PERSISTENT, rm);
         bn = new BigNat((short) 256, JCSystem.MEMORY_TYPE_TRANSIENT_RESET, rm);
+        sbn = new BigNat((short) 32, JCSystem.MEMORY_TYPE_TRANSIENT_RESET, rm);
 
         initialized = true;
     }
@@ -135,16 +140,47 @@ public class JC2pECDSA extends Applet implements ExtendedLength {
         point1.setW(curve.G, (short) 0, (short) curve.G.length);
         point1.multiplication(k2);
 
-        // TODO compute pi2
-        // TODO commit to pi2 || R2
-        apdu.setOutgoing();
+        randomData.nextBytes(ramArray, (short) 0, (short) 32);
+        bn.fromByteArray(ramArray, (short) 0, (short) 32);
+        point2.setW(curve.G, (short) 0, (short) curve.G.length);
+        point2.multiplication(bn);
+        point2.getW(ramArray, (short) 0);
+        md.reset();
+        md.doFinal(ramArray, (short) 0, (short) 65, proof, (short) 0);
+        sbn.fromByteArray(proof, (short) 0, (short) 32);
+        sbn.modMult(k2, curve.rBN);
+        bn.modSub(sbn, curve.rBN);
+        bn.copyToByteArray(proof, (short) 32);
+        md.reset();
+        md.update(proof, (short) 0, (short) 64);
+        point1.getW(ramArray, (short) 0);
+        md.doFinal(ramArray, (short) 0, (short) 65, apdu.getBuffer(), (short) 0);
+        apdu.setOutgoingAndSend((short) 0, (short) 32);
     }
 
     private void sign2(APDU apdu) {
         byte[] apduBuffer = apdu.getBuffer();
-        point2.setW(apduBuffer, (short) (ISO7816.OFFSET_CDATA + 32), (short) 65);
+        bn.fromByteArray(apduBuffer, ISO7816.OFFSET_CDATA, (short) 32);
+        sbn.fromByteArray(apduBuffer, (short) (ISO7816.OFFSET_CDATA + 32), (short) 32);
+        point2.setW(apduBuffer, (short) (ISO7816.OFFSET_CDATA + 64), (short) 65);
         point2.multiplication(k2);
-        apdu.setOutgoingAndSend((short) 0, point1.getW(apdu.getBuffer(), (short) 0));
+        point2.getX(Rx, (short) 0);
+        point2.setW(apduBuffer, (short) (ISO7816.OFFSET_CDATA + 64), (short) 65);
+        point1.getW(apdu.getBuffer(), (short) 64);
+
+        point2.multiplication(bn);
+        point1.setW(curve.G, (short) 0, (short) curve.G.length);
+        point1.multAndAdd(sbn, point2);
+        point1.getW(ramArray, (short) 0);
+        md.doFinal(ramArray, (short) 0, (short) 65, ramArray, (short) 0);
+
+        bn.copyToByteArray(ramArray, (short) 32);
+        if (Util.arrayCompare(ramArray, (short) 0, ramArray, (short) 32, (short) 32) != 0) {
+            ISOException.throwIt((short) 0x1235);
+        }
+
+        Util.arrayCopyNonAtomic(proof, (short) 0, apdu.getBuffer(), (short) 0, (short) 64);
+        apdu.setOutgoingAndSend((short) 0, (short) (64 + 65));
     }
     private void sign3(APDU apdu) {
         byte[] apduBuffer = loadApdu(apdu);
@@ -164,7 +200,7 @@ public class JC2pECDSA extends Applet implements ExtendedLength {
         apduBuffer[1] = (byte) 0x44;
         apduBuffer[2] = (byte) 0x02;
         apduBuffer[3] = (byte) 0x20;
-        point2.getX(apduBuffer, (short) 4);
+        Util.arrayCopyNonAtomic(Rx, (short) 0, apduBuffer, (short) 4, (short) 32);
         apduBuffer[36] = (byte) 0x02;
         apduBuffer[37] = (byte) 0x20;
         k2.copyToByteArray(apduBuffer, (short) 38);

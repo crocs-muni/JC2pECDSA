@@ -44,7 +44,7 @@ public class ProtocolManager {
         Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, responseAPDU.getSW());
     }
 
-    public void sign1(byte[] message) throws Exception {
+    public byte[] sign1(byte[] message) throws Exception {
         CommandAPDU cmd = new CommandAPDU(
                 Consts.CLA_JC2PECDSA,
                 Consts.INS_SIGN1,
@@ -55,15 +55,17 @@ public class ProtocolManager {
         ResponseAPDU responseAPDU = cm.transmit(cmd);
         Assertions.assertNotNull(responseAPDU);
         Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, responseAPDU.getSW());
+        Assertions.assertEquals(32, responseAPDU.getData().length);
+        return responseAPDU.getData();
     }
 
-    public byte[] sign2(byte[] pi1, ECPoint R1) throws Exception {
+    public byte[] sign2(BigInteger proof1e, BigInteger proof1s, ECPoint R1) throws Exception {
         CommandAPDU cmd = new CommandAPDU(
                 Consts.CLA_JC2PECDSA,
                 Consts.INS_SIGN2,
                 0,
                 0,
-                Util.concat(pi1, R1.getEncoded(false))
+                Util.concat(encodeBigInteger(proof1e), encodeBigInteger(proof1s), R1.getEncoded(false))
         );
         ResponseAPDU responseAPDU = cm.transmit(cmd);
         Assertions.assertNotNull(responseAPDU);

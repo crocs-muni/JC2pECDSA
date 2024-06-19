@@ -6,6 +6,7 @@ import org.junit.jupiter.api.*;
 
 import java.math.BigInteger;
 import java.security.Security;
+import java.util.Arrays;
 
 public class AppletTest extends BaseTest {
     public AppletTest() {
@@ -40,21 +41,29 @@ public class AppletTest extends BaseTest {
         pm.setup(n, nsq, lambda, mu, X);
 
         // Host sends m to card
-        pm.sign1(new byte[32]);
+        byte[] comm = pm.sign1(new byte[32]);
 
         // Card sends commitment to host
         BigInteger k1 = ProtocolManager.randomBigInt(32);
         ECPoint R1 = ProtocolManager.G.multiply(k1);
 
         // Host sends pi1, R1 to card
-        byte[] resp = pm.sign2(new byte[32], R1);
-        ECPoint R2 = ProtocolManager.G.getCurve().decodePoint(resp);
+        BigInteger proof1r = ProtocolManager.randomBigInt(32);
+        ECPoint proof1R = ProtocolManager.G.multiply(proof1r);
+        BigInteger proof1e = ProtocolManager.hash(proof1R.getEncoded(false));
+        BigInteger proof1s = proof1r.subtract(proof1e.multiply(k1)).mod(order);
 
-        // TODO verify pi1
-
+        byte[] resp = pm.sign2(proof1e, proof1s, R1);
         // Card sends pi2, R2 to host
+        Assertions.assertArrayEquals(ProtocolManager.encodeBigInteger(ProtocolManager.hash(resp)), comm);
+        byte[] proof2 = Arrays.copyOfRange(resp, 0, 64);
+        BigInteger proof2e = new BigInteger(1, Arrays.copyOfRange(proof2, 0, 32));
+        BigInteger proof2s = new BigInteger(1, Arrays.copyOfRange(proof2, 32, 64));
+        ECPoint R2 = ProtocolManager.G.getCurve().decodePoint(Arrays.copyOfRange(resp, 64, 64 + 65));
 
-        // TODO verify commitment and pi2
+        ECPoint proof2R = ProtocolManager.G.multiply(proof2s).add(R2.multiply(proof2e));
+        Assertions.assertEquals(ProtocolManager.hash(proof2R.getEncoded(false)), proof2e);
+
         ECPoint R = R2.multiply(k1);
         BigInteger Rx = R.normalize().getRawXCoord().toBigInteger();
 
