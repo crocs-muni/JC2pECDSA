@@ -3,23 +3,26 @@ package jc2pecdsa;
 import javacard.framework.*;
 import javacard.security.*;
 import javacardx.apdu.ExtendedLength;
+import javacardx.crypto.Cipher;
 import jc2pecdsa.jcmathlib.*;
 
 
 public class JC2pECDSA extends Applet implements ExtendedLength {
-    public final static short CARD_TYPE = OperationSupport.SIMULATOR;
+    public final static short CARD_TYPE = OperationSupport.JCOP4_P71;
 
     private ResourceManager rm;
     private ECCurve curve;
 
-    private final byte[] largeBuffer = new byte[1024];
+    private final byte[] largeBuffer = new byte[1400];
     private final RandomData randomData = RandomData.getInstance(RandomData.ALG_SECURE_RANDOM);
     private final MessageDigest md = MessageDigest.getInstance(MessageDigest.ALG_SHA_256, false);
+    Cipher nsqExp = Cipher.getInstance(Cipher.ALG_RSA_NOPAD, false);
+    RSAPrivateKey nsqKey;
 
     private final Signature ecdsa = Signature.getInstance(Signature.ALG_ECDSA_SHA_256, false);
     private final byte[] ramArray = JCSystem.makeTransientByteArray((short) 65, JCSystem.CLEAR_ON_RESET);
     private ECPoint publicKey;
-    private BigNat n, nsq, lambda, mu;
+    private BigNat n, mu;
     private BigNat k2;
     private BigNat bn;
     private BigNat sbn;
@@ -104,30 +107,30 @@ public class JC2pECDSA extends Applet implements ExtendedLength {
         if (initialized)
             ISOException.throwIt(Consts.E_ALREADY_INITIALIZED);
 
+        nsqKey = (RSAPrivateKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PRIVATE, (short) 4096, false);
+
         rm = new ResourceManager((short) 256, (short) 2048);
         curve = new ECCurve(SecP256k1.p, SecP256k1.a, SecP256k1.b, SecP256k1.G, SecP256k1.r, rm);
         point1 = new ECPoint(curve);
         point2 = new ECPoint(curve);
         publicKey = new ECPoint(curve);
 
-        n = new BigNat((short) 128, JCSystem.MEMORY_TYPE_PERSISTENT, rm);
-        nsq = new BigNat((short) 256, JCSystem.MEMORY_TYPE_PERSISTENT, rm);
-        lambda = new BigNat((short) 128, JCSystem.MEMORY_TYPE_PERSISTENT, rm);
-        mu = new BigNat((short) 128, JCSystem.MEMORY_TYPE_PERSISTENT, rm);
+        n = new BigNat((short) 256, JCSystem.MEMORY_TYPE_PERSISTENT, rm);
+        mu = new BigNat((short) 256, JCSystem.MEMORY_TYPE_PERSISTENT, rm);
         k2 = new BigNat((short) 32, JCSystem.MEMORY_TYPE_PERSISTENT, rm);
-        bn = new BigNat((short) 256, JCSystem.MEMORY_TYPE_TRANSIENT_RESET, rm);
+        bn = new BigNat((short) 512, JCSystem.MEMORY_TYPE_TRANSIENT_RESET, rm);
         sbn = new BigNat((short) 32, JCSystem.MEMORY_TYPE_TRANSIENT_RESET, rm);
-
         initialized = true;
     }
 
     private void setup(APDU apdu) {
         byte[] apduBuffer = loadApdu(apdu);
-        n.fromByteArray(apduBuffer, apdu.getOffsetCdata(), (short) 128);
-        nsq.fromByteArray(apduBuffer, (short) (apdu.getOffsetCdata() + 128), (short) 256);
-        lambda.fromByteArray(apduBuffer, (short) (apdu.getOffsetCdata() + 128 + 256), (short) 128);
-        mu.fromByteArray(apduBuffer, (short) (apdu.getOffsetCdata() + 2 * 128 + 256), (short) 128);
-        publicKey.setW(apduBuffer, (short) (apdu.getOffsetCdata() + 3 * 128 + 256), (short) 65);
+        n.fromByteArray(apduBuffer, apdu.getOffsetCdata(), (short) 256);
+        nsqKey.setModulus(apduBuffer, (short) (apdu.getOffsetCdata() + 256), (short) 512);
+        nsqKey.setExponent(apduBuffer, (short) (apdu.getOffsetCdata() + 256 + 512), (short) 256);
+        nsqExp.init(nsqKey, Cipher.MODE_DECRYPT);
+        mu.fromByteArray(apduBuffer, (short) (apdu.getOffsetCdata() + 2 * 256 + 512), (short) 256);
+        publicKey.setW(apduBuffer, (short) (apdu.getOffsetCdata() + 3 * 256 + 512), (short) 65);
         ecdsa.init(publicKey.asPublicKey(), Signature.MODE_VERIFY);
         apdu.setOutgoing();
     }
@@ -184,9 +187,10 @@ public class JC2pECDSA extends Applet implements ExtendedLength {
     }
     private void sign3(APDU apdu) {
         byte[] apduBuffer = loadApdu(apdu);
-        bn.fromByteArray(apduBuffer, apdu.getOffsetCdata(), (short) 256);
 
-        bn.modExp(lambda, nsq);
+        nsqExp.doFinal(apduBuffer, apdu.getOffsetCdata(), (short) 512, apduBuffer, apdu.getOffsetCdata());
+
+        bn.fromByteArray(apduBuffer, apdu.getOffsetCdata(), (short) 512);
         bn.decrement();
         bn.divide(n);
         bn.modMult(mu, n);

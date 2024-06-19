@@ -1958,7 +1958,7 @@ public class jcmathlib {
             ALLOCATOR_TYPE_ARRAY[BN_D] = JCSystem.MEMORY_TYPE_TRANSIENT_RESET;
             ALLOCATOR_TYPE_ARRAY[BN_E] = JCSystem.MEMORY_TYPE_TRANSIENT_RESET;
             ALLOCATOR_TYPE_ARRAY[BN_F] = JCSystem.MEMORY_TYPE_TRANSIENT_RESET;
-            ALLOCATOR_TYPE_ARRAY[BN_G] = JCSystem.MEMORY_TYPE_TRANSIENT_RESET;
+            // ALLOCATOR_TYPE_ARRAY[BN_G] = JCSystem.MEMORY_TYPE_TRANSIENT_RESET;
             ALLOCATOR_TYPE_ARRAY[EC_BN_B] = JCSystem.MEMORY_TYPE_TRANSIENT_RESET;
             ALLOCATOR_TYPE_ARRAY[EC_BN_C] = JCSystem.MEMORY_TYPE_TRANSIENT_RESET;
             ALLOCATOR_TYPE_ARRAY[POINT_ARRAY_A] = JCSystem.MEMORY_TYPE_TRANSIENT_RESET;
@@ -2230,7 +2230,7 @@ public class jcmathlib {
             BN_B = new BigNat(MAX_BIGNAT_SIZE, memAlloc.getAllocatorType(ObjectAllocator.BN_B), this);
             BN_C = new BigNat(MAX_BIGNAT_SIZE, memAlloc.getAllocatorType(ObjectAllocator.BN_C), this);
             BN_D = new BigNat(MAX_BIGNAT_SIZE, memAlloc.getAllocatorType(ObjectAllocator.BN_D), this);
-            BN_E = new BigNat(MAX_BIGNAT_SIZE, memAlloc.getAllocatorType(ObjectAllocator.BN_E), this);
+            BN_E = new BigNat((short) (2 * MAX_BIGNAT_SIZE), memAlloc.getAllocatorType(ObjectAllocator.BN_E), this);
             BN_F = new BigNat(MAX_SQ_LENGTH, memAlloc.getAllocatorType(ObjectAllocator.BN_F), this);
             BN_G = new BigNat(MAX_SQ_LENGTH, memAlloc.getAllocatorType(ObjectAllocator.BN_G), this);
 
