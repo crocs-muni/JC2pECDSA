@@ -30,7 +30,6 @@ public class jcmathlib {
 
             tmp.clone(this);
             tmp.remainderDivide(other, this);
-            copy(tmp);
         }
 
         /**
@@ -931,7 +930,7 @@ public class jcmathlib {
          */
         public void remainderDivide(BigNatInternal divisor, BigNatInternal quotient) {
             if (quotient != null) {
-                quotient.zero();
+                quotient.setSizeToMax(true);
             }
 
             short divisorIndex = divisor.offset;
@@ -983,6 +982,10 @@ public class jcmathlib {
                 }
                 divisionRound++;
                 divisorShift--;
+            }
+
+            if (quotient != null) {
+                quotient.shrink();
             }
         }
 
@@ -2174,7 +2177,13 @@ public class jcmathlib {
         public final short MAX_COORD_SIZE;
 
         public ResourceManager(short maxEcLength) {
+            this(maxEcLength, (short) 0);
+        }
+        public ResourceManager(short maxEcLength, short maxRsaLength) {
             short min = OperationSupport.getInstance().MIN_RSA_BIT_LENGTH;
+            if (min < maxRsaLength) {
+                min = maxRsaLength;
+            }
             if (maxEcLength <= (short) 256) {
                 MAX_EXP_BIT_LENGTH = (short) 512 < min ? min : (short) 512;
                 MAX_SQ_BIT_LENGTH = (short) 768 < min ? min : (short) 768;
@@ -2203,9 +2212,9 @@ public class jcmathlib {
 
             memAlloc = new ObjectAllocator();
             memAlloc.setAllAllocatorsRAM();
+            // memAlloc.setAllAllocatorsEEPROM();
+            // memAlloc.setAllocatorsTradeoff();
             // if required, memory for helper objects and arrays can be in persistent memory to save RAM (or some tradeoff)
-            // ObjectAllocator.setAllAllocatorsEEPROM();
-            // ObjectAllocator.setAllocatorsTradeoff();
 
 
             ARRAY_A = memAlloc.allocateByteArray(MAX_SQ_LENGTH, memAlloc.getAllocatorType(ObjectAllocator.ARRAY_A));
