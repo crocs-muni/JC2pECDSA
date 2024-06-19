@@ -37,22 +37,18 @@ public class AppletTest extends BaseTest {
         BigInteger pt = cx2.modPow(lambda, nsq).subtract(BigInteger.ONE).divide(n).multiply(mu).mod(n);
         assert pt.equals(x2);
 
-        pm.setup(n, nsq, lambda, mu);
+        pm.setup(n, nsq, lambda, mu, X);
 
         // Host sends m to card
         pm.sign1(new byte[32]);
-
-        BigInteger k2 = ProtocolManager.randomBigInt(32);
-        ECPoint R2 = ProtocolManager.G.multiply(k2);
-        // TODO compute DLPOK
-        // TODO commit to DLPOK and R2
 
         // Card sends commitment to host
         BigInteger k1 = ProtocolManager.randomBigInt(32);
         ECPoint R1 = ProtocolManager.G.multiply(k1);
 
         // Host sends pi1, R1 to card
-        pm.sign2(new byte[32], R1);
+        byte[] resp = pm.sign2(new byte[32], R1);
+        ECPoint R2 = ProtocolManager.G.getCurve().decodePoint(resp);
 
         // TODO verify pi1
 
@@ -70,12 +66,8 @@ public class AppletTest extends BaseTest {
         BigInteger c2 = cx2.modPow(v, nsq);
         BigInteger cs1 = c1.multiply(c2).mod(nsq);
 
-        // Host sends c3 to card
-        pm.sign3(cs1);
-        BigInteger s1 = cs1.modPow(lambda, nsq).subtract(BigInteger.ONE).divide(n).multiply(mu).mod(n);
-        BigInteger s = k2.modInverse(order).multiply(s1).mod(order);
-
-        byte[] signature = ProtocolManager.rawToDer(Rx, s);
+        // Host sends cs1 to card
+        byte[] signature = pm.sign3(cs1);
         Assertions.assertTrue(ProtocolManager.verifySignature(X, new byte[32], signature));
     }
 }

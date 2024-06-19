@@ -27,10 +27,11 @@ public class ProtocolManager {
         this.cm = cm;
     }
 
-    public void setup(BigInteger n, BigInteger nsq, BigInteger lambda, BigInteger mu) throws Exception {
+    public void setup(BigInteger n, BigInteger nsq, BigInteger lambda, BigInteger mu, ECPoint X) throws Exception {
         byte[] data = Util.concat(encodeBigInteger(n, 128), encodeBigInteger(nsq, 256));
         data = Util.concat(data, encodeBigInteger(lambda, 128));
         data = Util.concat(data, encodeBigInteger(mu, 128));
+        data = Util.concat(data, X.getEncoded(false));
         CommandAPDU cmd = new CommandAPDU(
                 Consts.CLA_JC2PECDSA,
                 Consts.INS_SETUP,
@@ -56,7 +57,7 @@ public class ProtocolManager {
         Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, responseAPDU.getSW());
     }
 
-    public void sign2(byte[] pi1, ECPoint R1) throws Exception {
+    public byte[] sign2(byte[] pi1, ECPoint R1) throws Exception {
         CommandAPDU cmd = new CommandAPDU(
                 Consts.CLA_JC2PECDSA,
                 Consts.INS_SIGN2,
@@ -67,9 +68,10 @@ public class ProtocolManager {
         ResponseAPDU responseAPDU = cm.transmit(cmd);
         Assertions.assertNotNull(responseAPDU);
         Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, responseAPDU.getSW());
+        return responseAPDU.getData();
     }
 
-    public void sign3(BigInteger cs1) throws Exception {
+    public byte[] sign3(BigInteger cs1) throws Exception {
         CommandAPDU cmd = new CommandAPDU(
                 Consts.CLA_JC2PECDSA,
                 Consts.INS_SIGN3,
@@ -80,6 +82,7 @@ public class ProtocolManager {
         ResponseAPDU responseAPDU = cm.transmit(cmd);
         Assertions.assertNotNull(responseAPDU);
         Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, responseAPDU.getSW());
+        return responseAPDU.getData();
     }
 
     public static BigInteger hash(byte[] message) throws NoSuchAlgorithmException {

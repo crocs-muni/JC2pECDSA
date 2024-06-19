@@ -2211,9 +2211,9 @@ public class jcmathlib {
             MAX_COORD_SIZE = (short) (MAX_POINT_SIZE / 2);
 
             memAlloc = new ObjectAllocator();
-            memAlloc.setAllAllocatorsRAM();
+            // memAlloc.setAllAllocatorsRAM();
             // memAlloc.setAllAllocatorsEEPROM();
-            // memAlloc.setAllocatorsTradeoff();
+            memAlloc.setAllocatorsTradeoff();
             // if required, memory for helper objects and arrays can be in persistent memory to save RAM (or some tradeoff)
 
 
