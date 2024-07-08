@@ -4,6 +4,8 @@ import cz.muni.fi.crocs.rcard.client.CardType;
 import org.bouncycastle.math.ec.ECPoint;
 import org.junit.jupiter.api.*;
 
+import java.io.FileWriter;
+import java.io.PrintWriter;
 import java.math.BigInteger;
 import java.security.Security;
 import java.util.Arrays;
@@ -16,6 +18,8 @@ public class AppletTest extends BaseTest {
 
     @Test
     public void testSign() throws Exception {
+        PrintWriter file = new PrintWriter(new FileWriter("full.csv", false));
+
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
         ProtocolManager pm = new ProtocolManager(connect());
 
@@ -40,43 +44,50 @@ public class AppletTest extends BaseTest {
 
         pm.setup(n, nsq, lambda, mu, X);
 
-        // Host sends m to card
-        byte[] comm = pm.sign1(new byte[32]);
+        for(int i = 0; i < 10; ++i) {
+            // Host sends m to card
+            byte[] comm = pm.sign1(new byte[32]);
+            file.printf("%d,", pm.cm.getLastTransmitTime());
 
-        // Card sends commitment to host
-        BigInteger k1 = ProtocolManager.randomBigInt(32);
-        ECPoint R1 = ProtocolManager.G.multiply(k1);
+            // Card sends commitment to host
+            BigInteger k1 = ProtocolManager.randomBigInt(32);
+            ECPoint R1 = ProtocolManager.G.multiply(k1);
 
-        // Host sends pi1, R1 to card
-        BigInteger proof1r = ProtocolManager.randomBigInt(32);
-        ECPoint proof1R = ProtocolManager.G.multiply(proof1r);
-        BigInteger proof1e = ProtocolManager.hash(proof1R.getEncoded(false));
-        BigInteger proof1s = proof1r.subtract(proof1e.multiply(k1)).mod(order);
+            // Host sends pi1, R1 to card
+            BigInteger proof1r = ProtocolManager.randomBigInt(32);
+            ECPoint proof1R = ProtocolManager.G.multiply(proof1r);
+            BigInteger proof1e = ProtocolManager.hash(proof1R.getEncoded(false));
+            BigInteger proof1s = proof1r.subtract(proof1e.multiply(k1)).mod(order);
 
-        byte[] resp = pm.sign2(proof1e, proof1s, R1);
-        // Card sends pi2, R2 to host
-        Assertions.assertArrayEquals(ProtocolManager.encodeBigInteger(ProtocolManager.hash(resp)), comm);
-        byte[] proof2 = Arrays.copyOfRange(resp, 0, 64);
-        BigInteger proof2e = new BigInteger(1, Arrays.copyOfRange(proof2, 0, 32));
-        BigInteger proof2s = new BigInteger(1, Arrays.copyOfRange(proof2, 32, 64));
-        ECPoint R2 = ProtocolManager.G.getCurve().decodePoint(Arrays.copyOfRange(resp, 64, 64 + 65));
+            byte[] resp = pm.sign2(proof1e, proof1s, R1);
+            file.printf("%d,", pm.cm.getLastTransmitTime());
+            // Card sends pi2, R2 to host
+            Assertions.assertArrayEquals(ProtocolManager.encodeBigInteger(ProtocolManager.hash(resp)), comm);
+            byte[] proof2 = Arrays.copyOfRange(resp, 0, 64);
+            BigInteger proof2e = new BigInteger(1, Arrays.copyOfRange(proof2, 0, 32));
+            BigInteger proof2s = new BigInteger(1, Arrays.copyOfRange(proof2, 32, 64));
+            ECPoint R2 = ProtocolManager.G.getCurve().decodePoint(Arrays.copyOfRange(resp, 64, 64 + 65));
 
-        ECPoint proof2R = ProtocolManager.G.multiply(proof2s).add(R2.multiply(proof2e));
-        Assertions.assertEquals(ProtocolManager.hash(proof2R.getEncoded(false)), proof2e);
+            ECPoint proof2R = ProtocolManager.G.multiply(proof2s).add(R2.multiply(proof2e));
+            Assertions.assertEquals(ProtocolManager.hash(proof2R.getEncoded(false)), proof2e);
 
-        ECPoint R = R2.multiply(k1);
-        BigInteger Rx = R.normalize().getRawXCoord().toBigInteger();
+            ECPoint R = R2.multiply(k1);
+            BigInteger Rx = R.normalize().getRawXCoord().toBigInteger();
 
-        BigInteger rho = ProtocolManager.randomBigInt(128);
-        BigInteger rtilda = ProtocolManager.randomBigInt(256);
-        BigInteger c1_prime = rho.multiply(order).add(k1.modInverse(order).multiply(m).mod(order)).mod(rtilda);
-        BigInteger c1 = g.modPow(c1_prime, nsq).multiply(ProtocolManager.randomBigInt(256).modPow(n, nsq)).mod(nsq);
-        BigInteger v = k1.modInverse(order).multiply(Rx).multiply(x1).mod(order);
-        BigInteger c2 = cx2.modPow(v, nsq);
-        BigInteger cs1 = c1.multiply(c2).mod(nsq);
+            BigInteger rho = ProtocolManager.randomBigInt(128);
+            BigInteger rtilda = ProtocolManager.randomBigInt(256);
+            BigInteger c1_prime = rho.multiply(order).add(k1.modInverse(order).multiply(m).mod(order)).mod(rtilda);
+            BigInteger c1 = g.modPow(c1_prime, nsq).multiply(ProtocolManager.randomBigInt(256).modPow(n, nsq)).mod(nsq);
+            BigInteger v = k1.modInverse(order).multiply(Rx).multiply(x1).mod(order);
+            BigInteger c2 = cx2.modPow(v, nsq);
+            BigInteger cs1 = c1.multiply(c2).mod(nsq);
 
-        // Host sends cs1 to card
-        byte[] signature = pm.sign3(cs1);
-        Assertions.assertTrue(ProtocolManager.verifySignature(X, new byte[32], signature));
+            // Host sends cs1 to card
+            byte[] signature = pm.sign3(cs1);
+            file.printf("%d\n", pm.cm.getLastTransmitTime());
+            Assertions.assertTrue(ProtocolManager.verifySignature(X, new byte[32], signature));
+        }
+
+        file.close();
     }
 }
