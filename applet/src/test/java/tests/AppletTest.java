@@ -10,7 +10,7 @@ import java.util.Arrays;
 
 public class AppletTest extends BaseTest {
     public AppletTest() {
-        setCardType(CardType.PHYSICAL);
+        setCardType(CardType.JCARDSIMLOCAL);
         setSimulateStateful(false);
     }
 

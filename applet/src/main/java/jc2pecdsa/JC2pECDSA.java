@@ -8,7 +8,7 @@ import jc2pecdsa.jcmathlib.*;
 
 
 public class JC2pECDSA extends Applet implements ExtendedLength {
-    public final static short CARD_TYPE = OperationSupport.JCOP4_P71;
+    public final static short CARD_TYPE = OperationSupport.SIMULATOR;
 
     private ResourceManager rm;
     private ECCurve curve;
@@ -110,7 +110,7 @@ public class JC2pECDSA extends Applet implements ExtendedLength {
         nsqKey = (RSAPrivateKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PRIVATE, (short) 4096, false);
 
         rm = new ResourceManager((short) 256, (short) 2048);
-        curve = new ECCurve(SecP256k1.p, SecP256k1.a, SecP256k1.b, SecP256k1.G, SecP256k1.r, rm);
+        curve = new ECCurve(SecP256r1.p, SecP256r1.a, SecP256r1.b, SecP256r1.G, SecP256r1.r, rm);
         point1 = new ECPoint(curve);
         point2 = new ECPoint(curve);
         publicKey = new ECPoint(curve);

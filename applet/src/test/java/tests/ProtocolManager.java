@@ -19,7 +19,7 @@ import java.util.Random;
 public class ProtocolManager {
     public final CardManager cm;
 
-    public final static ECParameterSpec ecSpec = ECNamedCurveTable.getParameterSpec("secp256k1");
+    public final static ECParameterSpec ecSpec = ECNamedCurveTable.getParameterSpec("secp256r1");
     public final static ECPoint G = ecSpec.getG();
     private final static Random rnd = new Random();
 
