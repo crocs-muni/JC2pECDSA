@@ -65,6 +65,19 @@ public class JC2pECDSA extends Applet implements ExtendedLength {
                 case Consts.INS_SIGN3:
                     sign3(apdu);
                     break;
+                // DEBUG INSTRUCTIONS
+                case Consts.INS_SIGN3_BEFORE_MODEXP:
+                    sign3beforeModExp(apdu);
+                    break;
+                case Consts.INS_SIGN3_MODEXP:
+                    sign3modExp(apdu);
+                    break;
+                case Consts.INS_SIGN3_BEFORE_DIVIDE:
+                    sign3beforeDivide(apdu);
+                    break;
+                case Consts.INS_SIGN3_DIVIDE:
+                    sign3divide(apdu);
+                    break;
                 default:
                     ISOException.throwIt(ISO7816.SW_INS_NOT_SUPPORTED);
             }
@@ -185,6 +198,7 @@ public class JC2pECDSA extends Applet implements ExtendedLength {
         Util.arrayCopyNonAtomic(proof, (short) 0, apdu.getBuffer(), (short) 0, (short) 64);
         apdu.setOutgoingAndSend((short) 0, (short) (64 + 65));
     }
+
     private void sign3(APDU apdu) {
         byte[] apduBuffer = loadApdu(apdu);
 
@@ -212,6 +226,38 @@ public class JC2pECDSA extends Applet implements ExtendedLength {
         if (!ecdsa.verify(m, (short) 0, (short) 32, apduBuffer, (short) 0, (short) (32 * 2 + 6))) {
             // ISOException.throwIt((short) 0x1234); // sometimes fails in simulator but not on card
         }
+        apdu.setOutgoingAndSend((short) 0, (short) 70);
+    }
+
+    private void sign3beforeModExp(APDU apdu) {
+        byte[] apduBuffer = loadApdu(apdu);
+        apdu.setOutgoingAndSend((short) 0, (short) 70);
+    }
+
+    private void sign3modExp(APDU apdu) {
+        byte[] apduBuffer = loadApdu(apdu);
+        nsqExp.doFinal(apduBuffer, apdu.getOffsetCdata(), (short) 512, apduBuffer, apdu.getOffsetCdata());
+        apdu.setOutgoingAndSend((short) 0, (short) 70);
+    }
+
+    private void sign3beforeDivide(APDU apdu) {
+        byte[] apduBuffer = loadApdu(apdu);
+
+        nsqExp.doFinal(apduBuffer, apdu.getOffsetCdata(), (short) 512, apduBuffer, apdu.getOffsetCdata());
+
+        bn.fromByteArray(apduBuffer, apdu.getOffsetCdata(), (short) 512);
+        bn.decrement();
+        apdu.setOutgoingAndSend((short) 0, (short) 70);
+    }
+
+    private void sign3divide(APDU apdu) {
+        byte[] apduBuffer = loadApdu(apdu);
+
+        nsqExp.doFinal(apduBuffer, apdu.getOffsetCdata(), (short) 512, apduBuffer, apdu.getOffsetCdata());
+
+        bn.fromByteArray(apduBuffer, apdu.getOffsetCdata(), (short) 512);
+        bn.decrement();
+        bn.divide(n);
         apdu.setOutgoingAndSend((short) 0, (short) 70);
     }
 
