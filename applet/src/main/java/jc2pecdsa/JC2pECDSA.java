@@ -13,7 +13,7 @@ public class JC2pECDSA extends Applet implements ExtendedLength {
     private ResourceManager rm;
     private ECCurve curve;
 
-    private final byte[] largeBuffer = new byte[1400];
+    private final byte[] largeBuffer = new byte[1900];
     private final RandomData randomData = RandomData.getInstance(RandomData.ALG_SECURE_RANDOM);
     private final MessageDigest md = MessageDigest.getInstance(MessageDigest.ALG_SHA_256, false);
     Cipher nsqExp = Cipher.getInstance(Cipher.ALG_RSA_NOPAD, false);
@@ -26,6 +26,8 @@ public class JC2pECDSA extends Applet implements ExtendedLength {
     private BigNat k2;
     private BigNat bn;
     private BigNat sbn;
+    private BigNat divMod;
+    private BigNat nInv;
     private ECPoint point1, point2;
     private final byte[] m = new byte[32];
     private final byte[] Rx = new byte[32];
@@ -122,7 +124,7 @@ public class JC2pECDSA extends Applet implements ExtendedLength {
 
         nsqKey = (RSAPrivateKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PRIVATE, (short) 4096, false);
 
-        rm = new ResourceManager((short) 256, (short) 2048);
+        rm = new ResourceManager((short) 256, (short) 4096);
         curve = new ECCurve(SecP256r1.p, SecP256r1.a, SecP256r1.b, SecP256r1.G, SecP256r1.r, rm);
         point1 = new ECPoint(curve);
         point2 = new ECPoint(curve);
@@ -133,6 +135,9 @@ public class JC2pECDSA extends Applet implements ExtendedLength {
         k2 = new BigNat((short) 32, JCSystem.MEMORY_TYPE_PERSISTENT, rm);
         bn = new BigNat((short) 512, JCSystem.MEMORY_TYPE_TRANSIENT_RESET, rm);
         sbn = new BigNat((short) 32, JCSystem.MEMORY_TYPE_TRANSIENT_RESET, rm);
+        divMod = new BigNat((short) 512, JCSystem.MEMORY_TYPE_PERSISTENT, rm);
+        divMod.fromByteArray(Consts.DIV_MODULUS, (short) 0, (short) 512);
+        nInv = new BigNat((short) 512, JCSystem.MEMORY_TYPE_PERSISTENT, rm);
         initialized = true;
     }
 
@@ -144,6 +149,8 @@ public class JC2pECDSA extends Applet implements ExtendedLength {
         nsqExp.init(nsqKey, Cipher.MODE_DECRYPT);
         mu.fromByteArray(apduBuffer, (short) (apdu.getOffsetCdata() + 2 * 256 + 512), (short) 256);
         publicKey.setW(apduBuffer, (short) (apdu.getOffsetCdata() + 3 * 256 + 512), (short) 65);
+        nInv.clone(n);
+        nInv.modInv(divMod);
         ecdsa.init(publicKey.asPublicKey(), Signature.MODE_VERIFY);
         apdu.setOutgoing();
     }
@@ -206,7 +213,7 @@ public class JC2pECDSA extends Applet implements ExtendedLength {
 
         bn.fromByteArray(apduBuffer, apdu.getOffsetCdata(), (short) 512);
         bn.decrement();
-        bn.divide(n);
+        bn.modMult(nInv, divMod);
         bn.modMult(mu, n);
         bn.shrink();
         bn.mod(curve.rBN);
