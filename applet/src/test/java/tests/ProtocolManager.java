@@ -27,10 +27,11 @@ public class ProtocolManager {
         this.cm = cm;
     }
 
-    public void setup(BigInteger n, BigInteger nsq, BigInteger lambda, BigInteger mu, ECPoint X) throws Exception {
+    public void setup(BigInteger n, BigInteger nsq, BigInteger lambda, BigInteger mu, BigInteger t, ECPoint X) throws Exception {
         byte[] data = Util.concat(encodeBigInteger(n, 256), encodeBigInteger(nsq, 512));
         data = Util.concat(data, encodeBigInteger(lambda, 256));
         data = Util.concat(data, encodeBigInteger(mu, 256));
+        data = Util.concat(data, encodeBigInteger(t, 512));
         data = Util.concat(data, X.getEncoded(false));
         CommandAPDU cmd = new CommandAPDU(
                 Consts.CLA_JC2PECDSA,
@@ -79,7 +80,7 @@ public class ProtocolManager {
                 Consts.INS_SIGN3,
                 0,
                 0,
-                ProtocolManager.encodeBigInteger(cs1, 512)
+                ProtocolManager.encodeBigInteger(cs1, 1024)
         );
         ResponseAPDU responseAPDU = cm.transmit(cmd);
         Assertions.assertNotNull(responseAPDU);
