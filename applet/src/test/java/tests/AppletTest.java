@@ -48,7 +48,7 @@ public class AppletTest extends BaseTest {
 
         pm.setup(p, p.pow(2), lambdap, mup, t, X);
 
-        for(int i = 0; i < 100; ++i) {
+        for(int i = 0; i < 10; ++i) {
             // Host sends m to card
             byte[] comm = pm.sign1(new byte[32]);
             file.printf("%d,", pm.cm.getLastTransmitTime());

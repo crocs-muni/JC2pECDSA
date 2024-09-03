@@ -8,11 +8,6 @@ public class Consts {
     public static final byte INS_SIGN2 = (byte) 0x02;
     public static final byte INS_SIGN3 = (byte) 0x03;
 
-    public static final byte INS_SIGN3_BEFORE_MODEXP = (byte) 0xd0;
-    public static final byte INS_SIGN3_MODEXP = (byte) 0xd1;
-    public static final byte INS_SIGN3_BEFORE_DIVIDE = (byte) 0xd2;
-    public static final byte INS_SIGN3_DIVIDE = (byte) 0xd3;
-
     public final static short E_ALREADY_INITIALIZED = (short) 0xee00;
 
     public final static short SW_Exception = (short) 0xff01;

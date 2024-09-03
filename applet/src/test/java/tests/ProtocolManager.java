@@ -88,59 +88,6 @@ public class ProtocolManager {
         return responseAPDU.getData();
     }
 
-    public byte[] sign3beforeModExp(BigInteger cs1) throws Exception {
-        CommandAPDU cmd = new CommandAPDU(
-                Consts.CLA_JC2PECDSA,
-                Consts.INS_SIGN3_BEFORE_MODEXP,
-                0,
-                0,
-                ProtocolManager.encodeBigInteger(cs1, 512)
-        );
-        ResponseAPDU responseAPDU = cm.transmit(cmd);
-        Assertions.assertNotNull(responseAPDU);
-        Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, responseAPDU.getSW());
-        return responseAPDU.getData();
-    }
-
-    public void sign3modExp(BigInteger cs1) throws Exception {
-        CommandAPDU cmd = new CommandAPDU(
-                Consts.CLA_JC2PECDSA,
-                Consts.INS_SIGN3_MODEXP,
-                0,
-                0,
-                ProtocolManager.encodeBigInteger(cs1, 512)
-        );
-        ResponseAPDU responseAPDU = cm.transmit(cmd);
-        Assertions.assertNotNull(responseAPDU);
-        Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, responseAPDU.getSW());
-    }
-
-    public void sign3beforeDivide(BigInteger cs1) throws Exception {
-        CommandAPDU cmd = new CommandAPDU(
-                Consts.CLA_JC2PECDSA,
-                Consts.INS_SIGN3_BEFORE_DIVIDE,
-                0,
-                0,
-                ProtocolManager.encodeBigInteger(cs1, 512)
-        );
-        ResponseAPDU responseAPDU = cm.transmit(cmd);
-        Assertions.assertNotNull(responseAPDU);
-        Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, responseAPDU.getSW());
-    }
-
-    public void sign3divide(BigInteger cs1) throws Exception {
-        CommandAPDU cmd = new CommandAPDU(
-                Consts.CLA_JC2PECDSA,
-                Consts.INS_SIGN3_DIVIDE,
-                0,
-                0,
-                ProtocolManager.encodeBigInteger(cs1, 512)
-        );
-        ResponseAPDU responseAPDU = cm.transmit(cmd);
-        Assertions.assertNotNull(responseAPDU);
-        Assertions.assertEquals(ISO7816.SW_NO_ERROR & 0xffff, responseAPDU.getSW());
-    }
-
     public static BigInteger hash(byte[] message) throws NoSuchAlgorithmException {
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         byte[] h = digest.digest(message);
